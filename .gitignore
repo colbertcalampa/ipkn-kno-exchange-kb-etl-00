@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+dist/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.cla**
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+run-lambda.py
+# Lambda
+lambda.zip
+
+# Environment & Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.p12
+*.pfx
+secrets.json
+config.json
+credentials.json
+*.credentials
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Serverless (only for local development)
+.serverless/
+node_modules/
+package-lock.json
