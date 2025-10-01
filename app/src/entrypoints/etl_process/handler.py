@@ -4,55 +4,72 @@ sys.path.append('./lib')
 import json
 import os
 import logging
+import uuid
 from typing import Any, Dict
 
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
 from app.src.domain.usecases.etl_process_use_case import EtlProcess
+
 from app.src.adapters.repositories.confluence_api import ConfluenceAPIAdapter
 from app.src.adapters.repositories.s3_repository import S3RepositoryAdapter
 from app.src.adapters.repositories.step_function_trigger import StepFunctionTriggerAdapter
 from app.src.adapters.repositories.secrets_manager_adapter import SecretsManagerAdapter
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 CONFLUENCE_SECRET_NAME = os.getenv("CONFLUENCE_SECRET_NAME", "sm-dev-ia-contact-handler-ke-ingest-01")
 CONFLUENCE_BASE_URL = os.getenv("CONFLUENCE_BASE_URL", "https://matrixmvp.atlassian.net/wiki")
 AWS_REGION_NAME = os.getenv("AWS_REGION_NAME", "us-east-1")
 
+AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME", "s3-dev-io-ia-knowledge-base-01")
+AWS_S3_BUCKET_PATH = os.getenv("AWS_S3_BUCKET_PATH", "landing")
+
+def _make_use_case() -> EtlProcess:
+    secret_manager = SecretsManagerAdapter(AWS_REGION_NAME)
+    confluence_credential_api = secret_manager.get_secret(CONFLUENCE_SECRET_NAME)
+    return EtlProcess(
+        ConfluenceAPIAdapter(CONFLUENCE_BASE_URL, confluence_credential_api),
+        S3RepositoryAdapter(AWS_S3_BUCKET_NAME, AWS_S3_BUCKET_PATH, AWS_REGION_NAME),
+        StepFunctionTriggerAdapter()
+    )
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    correlation_id = (event.get("headers") or {}).get("X-Correlation-Id") or str(uuid.uuid4())
     try:
-        logger.info("Iniciando proceso ETL Confluence → S3 AWS")
+        logger.info("Iniciando proceso ETL Confluence → S3 AWS", extra={"correlation_id": correlation_id})
 
-        body = json.loads(event.get("body", "{}"))
+        body = json.loads(event.get("body") or "{}")
         page_id = body.get("page_id")
-        event_type = body.get("event_type")
+        event_type_str = body.get("event_type")
 
-        if not page_id or not event_type:
+        if not page_id or not event_type_str:
             raise ValueError("Required parameters are missing: page_id or event_type")
 
-        logger.info(f"Processing event: page_id={page_id}, event_type={event_type}")
+        try:
+            event_type = DocumentEventType(event_type_str)
+        except ValueError:
+            raise ValueError(f"Invalid event_type: {event_type_str}")
 
-        document_event = DocumentEvent(page_id, DocumentEventType(event_type))
+        use_case = _make_use_case()
+        result = use_case.handle_event(DocumentEvent(page_id, event_type))
 
-        secret_manager = SecretsManagerAdapter(AWS_REGION_NAME)
-        confluence_credential_api = secret_manager.get_secret(CONFLUENCE_SECRET_NAME)
-
-        caso_uso = EtlProcess(
-            ConfluenceAPIAdapter(CONFLUENCE_BASE_URL, confluence_credential_api),
-            S3RepositoryAdapter(AWS_REGION_NAME),
-            StepFunctionTriggerAdapter()
-        )
-
-        caso_uso.handle_event(document_event)
+        response_body = {
+            "page_id": result.page_id,
+            "event_type": result.event_type.value,
+            "object_key": result.object_key,
+            "status": "OK",
+            "correlation_id": correlation_id,
+        }
 
         return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*'
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "X-Correlation-Id": correlation_id,
             },
-            'body': json.dumps({'page_id': page_id, 'status': 'OK'})
+            "body": json.dumps(response_body),
         }
 
     except Exception as e:
