@@ -13,16 +13,20 @@ class S3RepositoryAdapter(LandingZonePort):
         self.path = path
         self.content_type = 'application/json'
 
-    def save(self, object_file_name: str, page_data: dict[str]) -> dict:
+    def save(self, object_file_name: str, page_data: dict) -> dict:
 
         try:
             object_key = f"{self.path}/{object_file_name}"
-            response = self.s3_client.put_object(Bucket=self.bucket, Key=object_key, Body=json.dumps(page_data) ,
+            response = self.s3_client.put_object(Bucket=self.bucket, Key=object_key, Body=json.dumps(page_data),
                                                  ContentType=self.content_type)
 
             print(f"Archivo '{object_key}' guardado en bucket '{self.bucket}'.")
 
-            return response
+            return {
+                "path": f"s3://{self.bucket}/{object_key}",
+                "request_id": response.get("ResponseMetadata").get("RequestId")
+            }
+
         except Exception as e:
             print(f"Error al subir archivo a S3: {e}")
-            raise
+            raise ValueError(f"Error al subir archivo a S3: {e}")

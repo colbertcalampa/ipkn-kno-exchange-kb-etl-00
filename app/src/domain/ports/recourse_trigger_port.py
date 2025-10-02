@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+
 class RecourseTriggerPort(ABC):
+
     @abstractmethod
-    def trigger(self, page_id: str, event_type: str) -> Any:
+    def trigger(self, page_id: str, event_type: str, object_key: str) -> Any:
         pass

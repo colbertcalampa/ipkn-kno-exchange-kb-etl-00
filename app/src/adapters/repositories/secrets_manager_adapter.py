@@ -15,6 +15,6 @@ class SecretsManagerAdapter(SecretManagerPort):
             secret_string = response.get('SecretString', '{}')
             return json.loads(secret_string)
         except Exception as e:
-            print(f"Error getting secret: {type(e).__name__}")
-            return {}
+            print(f"Error getting secret manager: {type(e).__name__}")
+            raise ValueError(f"Error getting secret manager: {type(e).__name__}")
 

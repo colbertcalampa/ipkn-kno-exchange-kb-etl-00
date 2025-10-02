@@ -18,12 +18,14 @@ from app.src.adapters.repositories.secrets_manager_adapter import SecretsManager
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-CONFLUENCE_SECRET_NAME = os.getenv("CONFLUENCE_SECRET_NAME", "sm-dev-ia-contact-handler-ke-ingest-01")
+CONFLUENCE_SECRET_NAME = os.getenv("CONFLUENCE_SECRET_NAME", "sm-io-ipkn-kno-exchange-confluence-00")
 CONFLUENCE_BASE_URL = os.getenv("CONFLUENCE_BASE_URL", "https://matrixmvp.atlassian.net/wiki")
 AWS_REGION_NAME = os.getenv("AWS_REGION_NAME", "us-east-1")
 
-AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME", "s3-dev-io-ia-knowledge-base-01")
-AWS_S3_BUCKET_PATH = os.getenv("AWS_S3_BUCKET_PATH", "landing")
+AWS_S3_BUCKET_NAME = os.getenv("AWS_S3_BUCKET_NAME", "colbert-test")
+AWS_S3_BUCKET_PATH = os.getenv("AWS_S3_BUCKET_PATH", "s3-io-ipkn-kno-exchange_landing-00/landing")
+
+AWS_STATE_MACHINE_ARN = os.getenv("AWS_S3_BUCKET_NAME", "arn:aws:states:us-east-1:627912843016:stateMachine:sfn-io-ipkn-kno-exchange-mngt-etl_process-00")
 
 def _make_use_case() -> EtlProcess:
     secret_manager = SecretsManagerAdapter(AWS_REGION_NAME)
@@ -31,7 +33,7 @@ def _make_use_case() -> EtlProcess:
     return EtlProcess(
         ConfluenceAPIAdapter(CONFLUENCE_BASE_URL, confluence_credential_api),
         S3RepositoryAdapter(AWS_S3_BUCKET_NAME, AWS_S3_BUCKET_PATH, AWS_REGION_NAME),
-        StepFunctionTriggerAdapter()
+        StepFunctionTriggerAdapter(AWS_STATE_MACHINE_ARN, AWS_REGION_NAME)
     )
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:

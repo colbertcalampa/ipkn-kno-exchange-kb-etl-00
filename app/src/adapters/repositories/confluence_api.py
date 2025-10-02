@@ -28,4 +28,4 @@ class ConfluenceAPIAdapter(DocumentSourcePort):
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Error al obtener la página {page_id} de Confluence: {e}")
-            raise
+            raise ValueError(f"Error al obtener la página {page_id} de Confluence: {e}")
