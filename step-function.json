@@ -1,0 +1,228 @@
+{
+  "Comment": "Process knowledge base document ingestion",
+  "StartAt": "PassConfigConstants",
+  "States": {
+    "PassConfigConstants": {
+      "Type": "Pass",
+      "Next": "ChoiceEventType",
+      "Parameters": {
+        "bucketGroundTruthVigente": "colbert-test",
+        "bucketGroundTruthVigentePath": "s3-io-ipkn-kno-exchange-ground-truth-00/vigente/",
+        "bucketGroundTruthEliminado": "colbert-test",
+        "bucketGroundTruthEliminadoPath": "s3-io-ipkn-kno-exchange-ground-truth-00/eliminado/",
+        "evenTypeNewAndUpdate": "updated",
+        "evenTypeDelete": "deleted"
+      },
+      "ResultPath": "$.configConstants"
+    },
+    "ChoiceEventType": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.state_input.event_type",
+          "StringEqualsPath": "$.configConstants.evenTypeNewAndUpdate",
+          "Next": "PENDInvokeLambda",
+          "Comment": "Page new/updated"
+        },
+        {
+          "Variable": "$.state_input.event_type",
+          "StringEqualsPath": "$.configConstants.evenTypeDelete",
+          "Next": "CopyObjectEventDeleted",
+          "Comment": "Pagina deleted"
+        }
+      ],
+      "Default": "formatError",
+      "Comment": "Tipo de Evento"
+    },
+    "formatError": {
+      "Type": "Pass",
+      "Next": "notifyEvent",
+      "ResultPath": "$.resultNotifyEvent",
+      "Result": {
+        "msj": "Sincronizado falló",
+        "estado": "FAIL"
+      }
+    },
+    "CopyObjectEventDeleted": {
+      "Type": "Task",
+      "Parameters": {
+        "Bucket.$": "$.configConstants.bucketGroundTruthEliminado",
+        "CopySource.$": "States.Format('{}/{}{}.html', $.configConstants.bucketGroundTruthVigente, $.configConstants.bucketGroundTruthVigentePath, $.state_input.page_id)",
+        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthEliminadoPath, $.state_input.page_id)"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:s3:copyObject",
+      "Next": "DeleteObjectEventDeleted",
+      "ResultPath": "$.copyObjectEventDeleted",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "formatError",
+          "ResultPath": "$.errorDetail"
+        }
+      ]
+    },
+    "DeleteObjectEventDeleted": {
+      "Type": "Task",
+      "Parameters": {
+        "Bucket.$": "$.configConstants.bucketGroundTruthVigente",
+        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthVigentePath, $.state_input.page_id)"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:s3:deleteObject",
+      "Next": "GetSettings",
+      "ResultPath": "$.deleteObjectEventDeleted",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "formatError",
+          "ResultPath": "$.errorDetail"
+        }
+      ]
+    },
+    "GetSettings": {
+      "Type": "Task",
+      "Parameters": {
+        "Name": "pm-io-ipkn-kno-exchange-settings-00",
+        "WithDecryption": true
+      },
+      "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+      "ResultPath": "$.getSettings",
+      "Next": "ParseSettings"
+    },
+    "ParseSettings": {
+      "Type": "Pass",
+      "Parameters": {
+        "settings.$": "States.StringToJson($.getSettings.Parameter.Value)"
+      },
+      "ResultPath": "$.settings",
+      "Next": "StartIngestionJobKB"
+    },
+    "StartIngestionJobKB": {
+      "Type": "Task",
+      "Parameters": {
+        "DataSourceId.$": "$.settings.settings.dataSourceId",
+        "KnowledgeBaseId.$": "$.settings.settings.knowledgeBaseId"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:bedrockagent:startIngestionJob",
+      "ResultPath": "$.startIngestionJobKB",
+      "Next": "GetIngestionJobKB"
+    },
+    "GetIngestionJobKB": {
+      "Type": "Task",
+      "Parameters": {
+        "DataSourceId.$": "$.settings.settings.dataSourceId",
+        "KnowledgeBaseId.$": "$.settings.settings.knowledgeBaseId",
+        "IngestionJobId.$": "$.startIngestionJobKB.IngestionJob.IngestionJobId"
+      },
+      "Resource": "arn:aws:states:::aws-sdk:bedrockagent:getIngestionJob",
+      "Next": "isDoneIngestionJobKB",
+      "ResultPath": "$.resultGetIngestionJobKB"
+    },
+    "isDoneIngestionJobKB": {
+      "Type": "Choice",
+      "Default": "WaitBeforeGetStatusIngestion",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "COMPLETE"
+            },
+            {
+              "Variable": "$.state_input.event_type",
+              "StringEqualsPath": "$.configConstants.evenTypeNewAndUpdate"
+            }
+          ],
+          "Next": "PENDposteoComment",
+          "Comment": "job Completed and new or udapted"
+        },
+        {
+          "And": [
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "COMPLETE"
+            },
+            {
+              "Variable": "$.state_input.event_type",
+              "StringEqualsPath": "$.configConstants.evenTypeDelete"
+            }
+          ],
+          "Next": "ingestionJobCompleted",
+          "Comment": "job Completed and Deleted"
+        },
+        {
+          "Or": [
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "FAILED"
+            },
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "STOPPED"
+            }
+          ],
+          "Next": "formatError",
+          "Comment": "job Fail"
+        },
+        {
+          "Or": [
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "STARTING"
+            },
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "IN_PROGRESS"
+            },
+            {
+              "Variable": "$.resultGetIngestionJobKB.IngestionJob.Status",
+              "StringEquals": "STOPPING"
+            }
+          ],
+          "Comment": "job in Progress",
+          "Next": "WaitBeforeGetStatusIngestion"
+        }
+      ],
+      "Comment": "Ingestion job KB pending"
+    },
+    "ingestionJobCompleted": {
+      "Type": "Pass",
+      "Next": "notifyEvent",
+      "ResultPath": "$.resultNotifyEvent",
+      "Result": {
+        "msj": "Sincronizado Exitoso",
+        "estado": "SUCCESS"
+      }
+    },
+    "PENDposteoComment": {
+      "Type": "Pass",
+      "Next": "ingestionJobCompleted"
+    },
+    "notifyEvent": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Next": "Success",
+      "Parameters": {
+        "Message.$": "States.Format('Evento de página : {} \n - {}', $.state_input.event_type, $.resultNotifyEvent.msj)",
+        "TopicArn": "arn:aws:sns:us-east-1:627912843016:sns-io-ipkn-kno-exchange-notification-events-00"
+      },
+      "ResultPath": "$.notifyEvent"
+    },
+    "WaitBeforeGetStatusIngestion": {
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "GetIngestionJobKB"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "PENDInvokeLambda": {
+      "Type": "Pass",
+      "Next": "GetSettings"
+    }
+  },
+  "QueryLanguage": "JSONPath"
+}
