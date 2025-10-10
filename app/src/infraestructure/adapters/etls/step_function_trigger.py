@@ -17,9 +17,9 @@ class StepFunctionTriggerAdapter(RecourseTriggerPort):
             input_step_function = {
                 "state_input":
                     {
-                        "page_id": page_id,
+                        "document_id": page_id,
                         "event_type": event_type,
-                        "object_key": object_key
+                        "document_uri": object_key
                     }
             }
 

@@ -37,9 +37,10 @@ def _make_use_case() -> EtlProcess:
     )
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    correlation_id = (event.get("headers") or {}).get("X-Correlation-Id") or str(uuid.uuid4())
+
     try:
-        logger.info("Iniciando proceso ETL Confluence → S3 AWS", extra={"correlation_id": correlation_id})
+        request_id = context.aws_request_id
+        logger.info(f" RUN : ETL PROCESS DOCUMENT : REQUEST ID ({request_id})")
 
         body = json.loads(event.get("body") or "{}")
         page_id = body.get("page_id")
@@ -56,12 +57,14 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         use_case = _make_use_case()
         result = use_case.handle_event(DocumentEvent(page_id, event_type))
 
+        logger.info(f" RUN : ETL PROCESS DOCUMENT : END USE CASE")
+
         response_body = {
             "page_id": result.page_id,
             "event_type": result.event_type.value,
             "object_key": result.object_key,
             "status": "OK",
-            "correlation_id": correlation_id,
+            "correlation_id": request_id,
         }
 
         return {
@@ -69,7 +72,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             "headers": {
                 "Content-Type": "application/json",
                 "Access-Control-Allow-Origin": "*",
-                "X-Correlation-Id": correlation_id,
+                "X-Correlation-Id": request_id,
             },
             "body": json.dumps(response_body),
         }

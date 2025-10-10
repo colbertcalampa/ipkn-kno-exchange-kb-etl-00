@@ -21,7 +21,7 @@
         {
           "Variable": "$.state_input.event_type",
           "StringEqualsPath": "$.configConstants.evenTypeNewAndUpdate",
-          "Next": "PENDInvokeLambda",
+          "Next": "InvokeLambdaExtractDocument",
           "Comment": "Page new/updated"
         },
         {
@@ -47,8 +47,8 @@
       "Type": "Task",
       "Parameters": {
         "Bucket.$": "$.configConstants.bucketGroundTruthEliminado",
-        "CopySource.$": "States.Format('{}/{}{}.html', $.configConstants.bucketGroundTruthVigente, $.configConstants.bucketGroundTruthVigentePath, $.state_input.page_id)",
-        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthEliminadoPath, $.state_input.page_id)"
+        "CopySource.$": "States.Format('{}/{}{}.html', $.configConstants.bucketGroundTruthVigente, $.configConstants.bucketGroundTruthVigentePath, $.state_input.document_id)",
+        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthEliminadoPath, $.state_input.document_id)"
       },
       "Resource": "arn:aws:states:::aws-sdk:s3:copyObject",
       "Next": "DeleteObjectEventDeleted",
@@ -67,7 +67,7 @@
       "Type": "Task",
       "Parameters": {
         "Bucket.$": "$.configConstants.bucketGroundTruthVigente",
-        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthVigentePath, $.state_input.page_id)"
+        "Key.$": "States.Format('{}{}.html', $.configConstants.bucketGroundTruthVigentePath, $.state_input.document_id)"
       },
       "Resource": "arn:aws:states:::aws-sdk:s3:deleteObject",
       "Next": "GetSettings",
@@ -219,9 +219,42 @@
     "Success": {
       "Type": "Succeed"
     },
-    "PENDInvokeLambda": {
-      "Type": "Pass",
-      "Next": "GetSettings"
+    "InvokeLambdaExtractDocument": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:627912843016:function:lmb-io-ipkn-kno-exchange-mngt-etl_extract-document-00:$LATEST",
+        "Payload": {
+          "document_id.$": "$.state_input.document_id",
+          "event_type.$": "$.state_input.event_type",
+          "document_uri.$": "$.state_input.document_uri"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "GetSettings",
+      "ResultPath": "$.invokeLmbExtractDoc",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "formatError",
+          "ResultPath": "$.errorDetail"
+        }
+      ]
     }
   },
   "QueryLanguage": "JSONPath"

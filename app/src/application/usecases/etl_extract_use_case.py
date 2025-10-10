@@ -14,26 +14,29 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class EtlExtract:
-    def __init__(self,
-                 landing_zone: LandingZonePort):
+    def __init__(self, landing_zone: LandingZonePort, extract_document, ground_truth_zone):
         self.landing_zone = landing_zone
-        self.extract_document = landing_zone # PEND
-        self.ground_truth_zone = landing_zone
+        self.extract_document = extract_document
+        self.ground_truth_zone = ground_truth_zone
 
     def handle_event(self, event: DocumentEvent) :
 
         logger.info("Iniciando ETL extract document")
 
-        if not event.page_id or not event.event_type:
+        if not event.document_id or not event.event_type:
             raise ValueError("Event without necessary data")
 
-        logger.info("- Descarga de documento desde landing")
-        document_object = self.landing_zone.download_data(object_key)
+        logger.info("- Obtención de documento desde landing")
+        document_object = self.landing_zone.get_document(event.document_uri)
 
         logger.info("- Extraccion data y metadata documento")
         document_data, document_metadata = self.extract_document.extract_data(document_object)
 
-        logger.info("- Carga de documento hacia ground truth")
-        upload_response = self.ground_truth_zone.upload_data(document_data, document_metadata)
+        data_object_key = f"{event.document_id}.html"
+        metadata_object_key = f"{event.document_id}.metadata.html"
 
-        return ExtractResult(event.page_id, event.event_type, object_key)
+        logger.info("- Carga de documento hacia ground truth")
+        upload_data_response = self.ground_truth_zone.save(data_object_key, document_data)
+        upload_metadata_response = self.ground_truth_zone.save(metadata_object_key, document_metadata)
+
+        return ExtractResult(event.document_id, event.event_type, data_object_key)

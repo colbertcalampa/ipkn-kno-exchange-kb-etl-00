@@ -4,6 +4,6 @@ from app.src.domain.model.document_event import DocumentEventType
 
 @dataclass(frozen=True)
 class ExtractResult:
-    page_id: str
+    document_id: str
     event_type: DocumentEventType
-    object_key: str
+    data_object_key: str

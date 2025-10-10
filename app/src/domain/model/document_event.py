@@ -5,6 +5,7 @@ class DocumentEventType(Enum):
     DELETED = "deleted"
 
 class DocumentEvent:
-    def __init__(self, page_id: str, event_type: DocumentEventType):
-        self.page_id = page_id
+    def __init__(self, document_id: str, event_type: DocumentEventType):
+        self.document_id = document_id
         self.event_type = event_type
+        self.document_uri = ""

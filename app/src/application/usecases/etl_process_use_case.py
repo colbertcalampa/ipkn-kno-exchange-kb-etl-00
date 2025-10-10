@@ -36,24 +36,27 @@ class EtlProcess:
 
         logger.info("Iniciando proceso ETL (ingesta y trigger)")
 
-        if not event.page_id or not event.event_type:
+        if not event.document_id or not event.event_type:
             raise ValueError("Event without necessary data")
+
 
         match event.event_type:
             case DocumentEventType.UPDATED:
-                page_data = self.document_source.get_page(event.page_id)
+                logger.info("- Obteniendo documento desde fuente de datos ")
+                page_data = self.document_source.get_page(event.document_id)
             case DocumentEventType.DELETED:
-                page_data = {"page_id": event.page_id, "event_type": event.event_type.value}
+                logger.info("- Generando documento log eliminado ")
+                page_data = {"page_id": event.document_id, "event_type": event.event_type.value}
             case _:
                 raise ValueError(f"Unsupported event type: {event.event_type}")
 
-        logger.info("Datos de documento obtenidos Confluence/generados")
-
-        object_key = self._build_object_key(event.page_id, event.event_type)
+        logger.info("- Carga de documento en repositorio landing")
+        object_key = self._build_object_key(event.document_id, event.event_type)
         object_saved = self.landing_zone.save(object_key, page_data)
-        logger.info(f"Archivo {object_saved["path"]} subido a S3")
+        logger.info(f"- Documento URI : {object_saved["uri"]} ")
 
-        self.workflow_trigger.trigger(event.page_id, event.event_type.value, object_saved["path"])
-        logger.info("Step Function iniciado correctamente")
+        logger.info("- Iniciando workflow de extraccion de datos")
+        self.workflow_trigger.trigger(event.document_id, event.event_type.value, object_saved["uri"])
 
-        return ProcessResult(event.page_id, event.event_type, object_key)
+
+        return ProcessResult(event.document_id, event.event_type, object_key)
