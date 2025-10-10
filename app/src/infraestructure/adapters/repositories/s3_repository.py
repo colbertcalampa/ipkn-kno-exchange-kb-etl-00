@@ -1,9 +1,7 @@
 import boto3
 import json
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
-from app.src.domain.ports.landing_zone_port import LandingZonePort
+from app.src.application.ports.landing_zone_port import LandingZonePort
 
 
 class S3RepositoryAdapter(LandingZonePort):

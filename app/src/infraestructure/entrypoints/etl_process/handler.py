@@ -8,12 +8,12 @@ import uuid
 from typing import Any, Dict
 
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
-from app.src.domain.usecases.etl_process_use_case import EtlProcess
+from app.src.application.usecases.etl_process_use_case import EtlProcess
 
-from app.src.adapters.repositories.confluence_api import ConfluenceAPIAdapter
-from app.src.adapters.repositories.s3_repository import S3RepositoryAdapter
-from app.src.adapters.repositories.step_function_trigger import StepFunctionTriggerAdapter
-from app.src.adapters.repositories.secrets_manager_adapter import SecretsManagerAdapter
+from app.src.infraestructure.adapters.repositories.confluence_api import ConfluenceAPIAdapter
+from app.src.infraestructure.adapters.repositories.s3_repository import S3RepositoryAdapter
+from app.src.infraestructure.adapters.etls.step_function_trigger import StepFunctionTriggerAdapter
+from app.src.infraestructure.adapters.repositories.secrets_manager_adapter import SecretsManagerAdapter
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

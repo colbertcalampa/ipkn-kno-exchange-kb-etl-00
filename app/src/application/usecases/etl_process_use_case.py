@@ -1,21 +1,17 @@
 import logging
 
-from dataclasses import dataclass
+
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
-from app.src.domain.ports.document_source_port import DocumentSourcePort
-from app.src.domain.ports.landing_zone_port import LandingZonePort
-from app.src.domain.ports.recourse_trigger_port import RecourseTriggerPort
+from app.src.domain.model.process_result_event import ProcessResult
+from app.src.application.ports.document_source_port import DocumentSourcePort
+from app.src.application.ports.landing_zone_port import LandingZonePort
+from app.src.application.ports.recourse_trigger_port import RecourseTriggerPort
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-@dataclass(frozen=True)
-class ProcessResult:
-    page_id: str
-    event_type: DocumentEventType
-    object_key: str
 
 class EtlProcess:
     def __init__(self,

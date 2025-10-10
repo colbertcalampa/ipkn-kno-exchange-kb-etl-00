@@ -2,7 +2,7 @@ import boto3
 import json
 
 
-from app.src.domain.ports.secret_manager_port import SecretManagerPort
+from app.src.application.ports.secret_manager_port import SecretManagerPort
 
 
 class SecretsManagerAdapter(SecretManagerPort):

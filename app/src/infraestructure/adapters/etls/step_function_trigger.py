@@ -1,7 +1,7 @@
 import boto3
 import json
 
-from app.src.domain.ports.recourse_trigger_port import RecourseTriggerPort
+from app.src.application.ports.recourse_trigger_port import RecourseTriggerPort
 from typing import Any
 
 

@@ -1,9 +1,8 @@
 import requests
-import json
 from requests.auth import HTTPBasicAuth
 from typing import Dict
 
-from app.src.domain.ports.document_source_port import DocumentSourcePort
+from app.src.application.ports.document_source_port import DocumentSourcePort
 
 class ConfluenceAPIAdapter(DocumentSourcePort):
     def __init__(self, base_url: str, credentials: Dict[str, str]):
