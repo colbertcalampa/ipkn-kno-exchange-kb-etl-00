@@ -1,5 +1,5 @@
 import os
-from app.src.infraestructure.entrypoints.etl_extract_document.handler import handler
+from app.src.infraestructure.entrypoints.etl_extract.handler import handler
 
 # Configurar variables de entorno para prueba local
 os.environ['TABLE_NAME'] = 'dyn-security-poc'

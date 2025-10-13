@@ -6,4 +6,4 @@ from app.src.domain.model.document_event import DocumentEventType
 class ExtractResult:
     document_id: str
     event_type: DocumentEventType
-    data_object_key: str
+    document_uri: str

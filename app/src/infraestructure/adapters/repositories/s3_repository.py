@@ -21,7 +21,8 @@ class S3RepositoryAdapter(LandingZonePort):
 
         try:
             object_key = f"{self.path}/{object_file_name}"
-            response = self.s3_client.put_object(Bucket=self.bucket, Key=object_key, Body=json.dumps(page_data, ensure_ascii=False).encode("utf-8"),
+            response = self.s3_client.put_object(Bucket=self.bucket, Key=object_key,
+                                                 Body=json.dumps(page_data, ensure_ascii=False).encode("utf-8"),
                                                  ContentType=self.content_type)
 
             print(f"Archivo '{object_key}' guardado en bucket '{self.bucket}'.")
@@ -46,10 +47,10 @@ class S3RepositoryAdapter(LandingZonePort):
 
         return bucket, key
 
-    def get_document(self, document_uri):
+    def get_document_from_uri(self, document_uri):
         try:
             bucket, key = self._parse_s3_uri(document_uri)
-            response = self.s3_client.get_object(Bucket=bucket, Key=key)
+            response = self.s3_client.get_object(Bucket=self.bucket, Key=key)
             content = response['Body'].read().decode('utf-8')
             return json.loads(content)
 
