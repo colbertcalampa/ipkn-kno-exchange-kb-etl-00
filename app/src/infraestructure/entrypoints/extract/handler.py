@@ -9,7 +9,7 @@ import uuid
 from typing import Any, Dict
 
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
-from app.src.application.usecases.etl_extract_use_case import ExtractDocumentUseCase
+from app.src.application.usecases.extract_use_case import ExtractDocumentUseCase
 
 from app.src.infraestructure.adapters.transformer.extract_page_confluence_adapter import ExtractContentConfluenceAdapter
 from app.src.infraestructure.adapters.repositories.s3_repository import S3RepositoryAdapter

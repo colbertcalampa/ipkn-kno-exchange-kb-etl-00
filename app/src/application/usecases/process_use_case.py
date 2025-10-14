@@ -1,13 +1,12 @@
 import logging
 
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
 from app.src.domain.model.process_result_event import ProcessResult
-from app.src.application.ports.document_source_port import DocumentSourcePort
-from app.src.application.ports.landing_zone_port import LandingZonePort
-from app.src.application.ports.recourse_trigger_port import RecourseTriggerPort
+from app.src.application.ports.document_source_port import DocumentSourceInterface
+from app.src.application.ports.landing_zone_port import LandingZoneInterface
+from app.src.application.ports.recourse_trigger_port import RecourseTriggerInterface
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -15,9 +14,9 @@ logger.setLevel(logging.INFO)
 
 class ProcessUseCase:
     def __init__(self,
-                 document_source: DocumentSourcePort,
-                 landing_zone: LandingZonePort,
-                 workflow_trigger: RecourseTriggerPort):
+                 document_source: DocumentSourceInterface,
+                 landing_zone: LandingZoneInterface,
+                 workflow_trigger: RecourseTriggerInterface):
         self.document_source = document_source
         self.landing_zone = landing_zone
         self.workflow_trigger = workflow_trigger
@@ -63,7 +62,10 @@ class ProcessUseCase:
         logger.info(f"- Documento URI : {object_saved['uri']} ")
 
         logger.info("- Iniciando workflow de extraccion de datos")
-        #self.workflow_trigger.trigger(event.document_id, event.event_type.value, object_saved["uri"])
+        self.workflow_trigger.trigger(event.document_id, event.event_type.value, object_saved["uri"])
 
-        return ProcessResult(event.document_id, event.event_type, object_key)
-
+        return ProcessResult(
+            event.document_id,
+            event.event_type,
+            object_key
+        )

@@ -7,5 +7,5 @@ class LandingZonePort(ABC):
         pass
 
     @abstractmethod
-    def get_document_from_uri(self, document_uri: str) -> dict:
+    def get_document(self, document_uri: str) -> dict:
         pass

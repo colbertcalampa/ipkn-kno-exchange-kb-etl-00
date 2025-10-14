@@ -1,4 +1,4 @@
-# app/src/infraestructure/entrypoints/etl_extract/handler.py
+# app/src/infraestructure/entrypoints/process/handler.py
 
 import json
 import logging
@@ -7,7 +7,7 @@ import uuid
 from typing import Any, Dict, Optional
 
 from app.src.domain.model.document_event import DocumentEvent, DocumentEventType
-from app.src.application.usecases.etl_extract_use_case import ExtractDocumentUseCase
+from app.src.application.usecases.extract_use_case import ExtractDocumentUseCase
 
 from app.src.infraestructure.adapters.sources.confluence_page_extractor_adapter import ConfluencePageExtractorAdapter
 from app.src.infraestructure.adapters.repositories.s3_repository import S3RepositoryAdapter
